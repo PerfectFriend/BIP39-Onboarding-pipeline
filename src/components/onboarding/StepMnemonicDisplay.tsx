@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Copy, Check, FileDown, ArrowRight, ArrowLeft, Shield, Eye, EyeOff } from 'lucide-react';
+import { Copy, Check, FileDown, ArrowRight, ArrowLeft, Shield, Eye, EyeOff, Share2 } from 'lucide-react';
 import { ScreenshotShield } from './ScreenshotShield';
 import { exportPaperPassportPdf } from '../../services/pdfExport';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface StepMnemonicDisplayProps {
   words: string[];
@@ -24,6 +25,7 @@ export const StepMnemonicDisplay: React.FC<StepMnemonicDisplayProps> = ({
   // Single-touch copy all words with safety timeout
   const handleCopyAll = async () => {
     try {
+      triggerHaptic('medium');
       await navigator.clipboard.writeText(words.join(' '));
       setCopied(true);
       setCopyFeedback('Фраза скопирована в буфер обмена (очистите буфер после записи!)');
@@ -36,8 +38,9 @@ export const StepMnemonicDisplay: React.FC<StepMnemonicDisplayProps> = ({
     }
   };
 
-  // Export Cold Storage PDF with QR
+  // Export Cold Storage PDF with QR & Android Share
   const handleExportPdf = async () => {
+    triggerHaptic('light');
     setIsExportingPdf(true);
     try {
       await exportPaperPassportPdf({
@@ -45,10 +48,28 @@ export const StepMnemonicDisplay: React.FC<StepMnemonicDisplayProps> = ({
         fingerprint,
         createdAt: Date.now()
       });
+      triggerHaptic('success');
     } catch (err) {
       console.error('PDF export failed:', err);
     } finally {
       setIsExportingPdf(false);
+    }
+  };
+
+  // Android Native Share Sheet
+  const handleAndroidShare = async () => {
+    triggerHaptic('light');
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `BIP-39 Vault Passport (${fingerprint})`,
+          text: `BIP-39 Cold Storage Recovery Passport (Fingerprint: ${fingerprint})`
+        });
+      } catch {
+        // User dismissed share sheet
+      }
+    } else {
+      handleExportPdf();
     }
   };
 
@@ -138,7 +159,17 @@ export const StepMnemonicDisplay: React.FC<StepMnemonicDisplayProps> = ({
                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors"
               >
                 <FileDown className="w-3.5 h-3.5 text-amber-400" />
-                {isExportingPdf ? 'Формирование PDF...' : 'Экспорт PDF с QR-кодом'}
+                {isExportingPdf ? 'Формирование PDF...' : 'PDF-паспорт'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAndroidShare}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-colors"
+                title="Android Share Sheet"
+              >
+                <Share2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">Android Share</span>
               </button>
             </div>
 

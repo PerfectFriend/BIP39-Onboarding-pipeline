@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { X, Copy, Check, Sparkles, BookOpen, ShieldCheck, Terminal, Cpu } from 'lucide-react';
+import { X, Copy, Check, Sparkles, BookOpen, ShieldCheck, Terminal, Cpu, Smartphone } from 'lucide-react';
 
 interface AiAgentPromptsModalProps {
   onClose: () => void;
 }
 
 export const AiAgentPromptsModal: React.FC<AiAgentPromptsModalProps> = ({ onClose }) => {
-  const [activeTab, setActiveTab] = useState<'master' | 'security' | 'web3' | 'reskin'>('master');
+  const [activeTab, setActiveTab] = useState<'master' | 'android' | 'security' | 'web3' | 'reskin'>('master');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleCopy = (text: string, id: string) => {
@@ -28,6 +28,39 @@ export const AiAgentPromptsModal: React.FC<AiAgentPromptsModalProps> = ({ onClos
 8. Задание отдельного Панического PIN-кода (Duress PIN): при его вводе все ключи и локальные данные мгновенно и безвозвратно стираются, а приложение сбрасывается в исходное состояние.
 9. Поддержать 3 пути восстановления: ручной ввод с автодополнением по словарю, сканирование QR-кода с камеры/файла и загрузку PDF-паспорта.
 10. По завершении передать объекту хост-приложения деривированные аккаунты (BTC, ETH, SOL), seedHex и мастер-отпечаток (fingerprint). Не сохранять приватные ключи в незашифрованном виде.`;
+
+  const androidPrompt = `Ты — Senior Android Architect & Security Specialist. Твоя задача — реализовать нативный Android модуль онбординга BIP-39 на Kotlin и Jetpack Compose (Material 3).
+
+1. Безопасность на уровне ОС Android:
+   - Примени WindowManager.LayoutParams.FLAG_SECURE в MainActivity для всех экранов показа и верификации фразы:
+     window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+     Это гарантирует, что Android блокирует скриншоты, запись экрана и превью в меню недавних приложений (Recent Apps).
+   - Для аппаратного шифрования используй Android Keystore (StrongBox / TEE) и EncryptedSharedPreferences:
+     val masterKey = MasterKey.Builder(context)
+         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+         .setRequestStrongBoxBacked(true)
+         .build()
+     val securePrefs = EncryptedSharedPreferences.create(
+         context, "vault_secrets", masterKey,
+         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+     )
+
+2. Биометрия (BiometricPrompt API):
+   - Реализуй BiometricPrompt с authenticators = BIOMETRIC_STRONG or DEVICE_CREDENTIAL.
+   - Привяжи биометрию к расшифровке ключа из Keystore без раскрытия PIN.
+
+3. Панический PIN (Duress Mode Wipe):
+   - При совпадении введенного PIN с паническим кодом:
+     securePrefs.edit().clear().commit()
+     context.cacheDir.deleteRecursively()
+     context.filesDir.deleteRecursively()
+     activity.finishAffinity() // Закрыть все экраны без сохранения состояния
+
+4. Jetpack Compose UI (Стиль Киберпанк + Ван Гог + Гауди):
+   - Экраны: WelcomeScreen -> DisclaimerScreen (12/24 слова) -> MnemonicDisplayScreen -> WordVerificationScreen (3 слова из 5 вариантов) -> PinSetupScreen -> PanicPinScreen.
+   - Добавь тактильный отклик (HapticFeedbackType.LongPress / TextHandleMove) на нажатия клавиатуры и выбор слов.
+   - Экспорт PDF через Android PdfDocument API и отправка через Intent.ACTION_SEND (Android Share Sheet).`;
 
   const securityPrompt = `Действуй как аудитор информационной безопасности криптовалютных кошельков. Проведи hardening и аудит текущего модуля онбординга BIP-39 по следующим стандартам:
 
@@ -68,35 +101,43 @@ export const AiAgentPromptsModal: React.FC<AiAgentPromptsModalProps> = ({ onClos
   const prompts = [
     {
       id: 'master',
-      title: 'Мастер-Промпт для AI-Агента',
+      title: 'Мастер-Промпт React/Web',
       subtitle: 'Внедрение онбординга в любой проект за 1 клик (Cursor, Windsurf, Claude, Copilot)',
       content: masterPrompt,
       icon: Terminal,
       color: 'text-sky-400'
     },
     {
-      id: 'security',
-      title: 'Промпт Аудита и Безопасности',
-      subtitle: 'Харденинг WebCrypto AES-GCM, Anti-Screenshot и Panic-Wipe',
-      content: securityPrompt,
-      icon: ShieldCheck,
+      id: 'android',
+      title: 'Android Native (Kotlin + Compose)',
+      subtitle: 'FLAG_SECURE, Android Keystore StrongBox, BiometricPrompt, Jetpack Compose',
+      content: androidPrompt,
+      icon: Smartphone,
       color: 'text-emerald-400'
     },
     {
-      id: 'web3',
-      title: 'Промпт Подключения Web3',
-      subtitle: 'Связка с Ethers.js, Viem, Solana Web3 и деривация BIP-44',
-      content: web3Prompt,
-      icon: Cpu,
+      id: 'security',
+      title: 'Аудит и Безопасность',
+      subtitle: 'Харденинг WebCrypto AES-GCM, Anti-Screenshot и Panic-Wipe',
+      content: securityPrompt,
+      icon: ShieldCheck,
       color: 'text-amber-400'
     },
     {
+      id: 'web3',
+      title: 'Подключение Web3 SDK',
+      subtitle: 'Связка с Ethers.js, Viem, Solana Web3 и деривация BIP-44',
+      content: web3Prompt,
+      icon: Cpu,
+      color: 'text-purple-400'
+    },
+    {
       id: 'reskin',
-      title: 'Промпт Кастомизации Брендинга',
+      title: 'Кастомизация Брендинга',
       subtitle: 'Настройка цветов, шрифтов и стилистики Киберпанк + Ван Гог + Гауди',
       content: reskinPrompt,
       icon: Sparkles,
-      color: 'text-purple-400'
+      color: 'text-rose-400'
     }
   ];
 
@@ -104,17 +145,17 @@ export const AiAgentPromptsModal: React.FC<AiAgentPromptsModalProps> = ({ onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
-      <div className="cyber-card rounded-3xl p-6 sm:p-8 max-w-3xl w-full relative gaudi-mosaic-border max-h-[90vh] flex flex-col justify-between">
+      <div className="cyber-card rounded-3xl p-6 sm:p-8 max-w-3xl w-full relative gaudi-mosaic-border max-h-[92vh] flex flex-col justify-between">
         <div>
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  AI Integration Prompts & Документация
+                  AI Integration Prompts & Android Architecture
                 </h2>
                 <p className="text-xs text-slate-400">
                   Готовые системные промпты для быстрой и унифицированной работы AI кодеров
@@ -124,14 +165,14 @@ export const AiAgentPromptsModal: React.FC<AiAgentPromptsModalProps> = ({ onClos
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Tab Navigation */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
             {prompts.map((p) => {
               const Icon = p.icon;
               const isActive = activeTab === p.id;
@@ -140,7 +181,7 @@ export const AiAgentPromptsModal: React.FC<AiAgentPromptsModalProps> = ({ onClos
                   key={p.id}
                   type="button"
                   onClick={() => setActiveTab(p.id as any)}
-                  className={`p-3 rounded-2xl border text-left transition-all ${
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                     isActive
                       ? 'bg-sky-500/15 border-sky-400 text-white shadow-[0_0_15px_rgba(56,189,248,0.2)]'
                       : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
@@ -164,14 +205,14 @@ export const AiAgentPromptsModal: React.FC<AiAgentPromptsModalProps> = ({ onClos
               <button
                 type="button"
                 onClick={() => handleCopy(activePromptData.content, activePromptData.id)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-400 to-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider hover:opacity-95 shadow-[0_0_15px_rgba(56,189,248,0.2)] cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-400 to-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider hover:opacity-95 shadow-[0_0_15px_rgba(56,189,248,0.2)] cursor-pointer shrink-0"
               >
                 {copiedId === activePromptData.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 {copiedId === activePromptData.id ? 'Скопировано!' : 'Скопировать промпт'}
               </button>
             </div>
 
-            <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300 overflow-y-auto max-h-[320px] whitespace-pre-wrap leading-relaxed">
+            <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300 overflow-y-auto max-h-[300px] whitespace-pre-wrap leading-relaxed select-all">
               {activePromptData.content}
             </pre>
           </div>
@@ -181,12 +222,12 @@ export const AiAgentPromptsModal: React.FC<AiAgentPromptsModalProps> = ({ onClos
         <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-sky-400" />
-            <span>Вставьте этот промпт в Cursor / Windsurf / Claude для мгновенного результата</span>
+            <span>Вставьте этот промпт в Cursor / Android Studio / Claude для мгновенного результата</span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold"
+            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold cursor-pointer"
           >
             Закрыть
           </button>

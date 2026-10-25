@@ -3,6 +3,8 @@ import { WalletCredentials } from '../../types/onboarding';
 import { wipeAllVaultData } from '../../services/cryptoStorage';
 import { exportPaperPassportPdf } from '../../services/pdfExport';
 import { generateQrDataUrl } from '../../services/qrGenerator';
+import { BiometricAuthOverlay } from '../android/BiometricAuthOverlay';
+import { triggerHaptic } from '../../utils/haptics';
 import {
   Wallet,
   ArrowUpRight,
@@ -20,7 +22,9 @@ import {
   AlertTriangle,
   Sparkles,
   Lock,
-  RefreshCw
+  RefreshCw,
+  Fingerprint,
+  ScanFace
 } from 'lucide-react';
 
 interface WalletDashboardProps {
@@ -61,6 +65,16 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({
   const [showDuressTestModal, setShowDuressTestModal] = useState(false);
   const [duressTestInput, setDuressTestInput] = useState('');
   const [duressTestFeedback, setDuressTestFeedback] = useState<string | null>(null);
+
+  // Biometrics verification modal state
+  const [showBiometricModal, setShowBiometricModal] = useState(false);
+
+  // When biometrics is verified, directly unlock and show seed phrase!
+  const handleBiometricSuccess = () => {
+    setShowBiometricModal(false);
+    setSeedUnlocked(true);
+    setShowSeedModal(true);
+  };
 
   // Assets mockup with real addresses
   const assets = [
@@ -379,14 +393,30 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({
               Скачать бумажный PDF-паспорт
             </button>
 
+            {/* Verify Biometrics Trigger Button */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setShowBiometricModal(true);
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500/20 via-sky-500/20 to-purple-500/20 hover:from-emerald-500/30 hover:to-sky-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] cursor-pointer"
+            >
+              <Fingerprint className="w-4 h-4 text-emerald-400" />
+              <span>Verify Biometrics · Раскрыть seed-фразу</span>
+            </button>
+
             {/* View Secret Seed Phrase Button */}
             <button
               type="button"
-              onClick={() => setShowSeedModal(true)}
+              onClick={() => {
+                triggerHaptic('light');
+                setShowSeedModal(true);
+              }}
               className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
               <Eye className="w-4 h-4 text-sky-400" />
-              Просмотреть seed-фразу
+              Просмотреть seed-фразу по PIN
             </button>
           </div>
 
@@ -585,6 +615,25 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({
                     Подтвердить
                   </button>
                 </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <div className="h-px bg-slate-800 flex-1" />
+                  <span className="text-[10px] text-slate-500 font-mono">ИЛИ БИОМЕТРИЯ</span>
+                  <div className="h-px bg-slate-800 flex-1" />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setShowSeedModal(false);
+                    setShowBiometricModal(true);
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Fingerprint className="w-4 h-4 text-emerald-400" />
+                  Верификация Face / Fingerprint (Android BiometricPrompt)
+                </button>
               </div>
             ) : (
               <div>
@@ -662,6 +711,19 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({
           </div>
         </div>
       )}
+      {/* Reusable BiometricAuthOverlay simulating Android BiometricPrompt */}
+      <BiometricAuthOverlay
+        isOpen={showBiometricModal}
+        title="Биометрическая аутентификация"
+        subtitle="Android BiometricPrompt · StrongBox Keystore"
+        description="Подтвердите личность (отпечаток пальца или Face Unlock) для безопасного раскрытия мнемонической seed-фразы."
+        onSuccess={handleBiometricSuccess}
+        onCancel={() => setShowBiometricModal(false)}
+        onFallbackToPin={() => {
+          setShowBiometricModal(false);
+          setShowSeedModal(true);
+        }}
+      />
     </div>
   );
 };

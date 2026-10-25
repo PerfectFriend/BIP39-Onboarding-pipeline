@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Copy, Check, Terminal, Shield, Sparkles, RefreshCw } from 'lucide-react';
+import { X, Copy, Check, Terminal, Shield, Sparkles, RefreshCw, Smartphone } from 'lucide-react';
 import { WalletCredentials } from '../../types/onboarding';
 
 interface SdkIntegrationDrawerProps {
@@ -66,6 +66,44 @@ export function deriveEthereumWallet(mnemonic: string) {
     address: wallet.address,
     privateKey: wallet.privateKey
   };
+};`;
+
+  const androidKotlinSnippet = `// Android Kotlin + Jetpack Compose + StrongBox Keystore
+@Composable
+fun AndroidBip39Onboarding(
+    onComplete: (credentials: WalletCredentials, pin: String) -> Unit,
+    onPanicTriggered: () -> Unit
+) {
+    val activity = LocalContext.current as? Activity
+
+    // 1. Hardware Screen Protection: FLAG_SECURE
+    DisposableEffect(Unit) {
+        activity?.window?.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        )
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+
+    // 2. EncryptedSharedPreferences with Android Keystore
+    val masterKey = MasterKey.Builder(LocalContext.current)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .setRequestStrongBoxBacked(true)
+        .build()
+
+    // 3. Jetpack Compose Onboarding Flow
+    Bip39Flow(
+        wordCount = 12, // or 24
+        onFinished = { creds, pin -> onComplete(creds, pin) },
+        onDuressWipe = {
+            // Emergency zero-wipe: clear hardware keys & finish app
+            wipeEncryptedStorage(LocalContext.current)
+            activity?.finishAffinity()
+            onPanicTriggered()
+        }
+    )
 }`;
 
   return (
@@ -149,6 +187,28 @@ export function deriveEthereumWallet(mnemonic: string) {
 
             <pre className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-200 overflow-x-auto leading-relaxed">
               {web3DerivationSnippet}
+            </pre>
+          </div>
+
+          {/* Android Kotlin & Compose Snippet */}
+          <div className="space-y-4 mb-6">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+                3. Нативный Android (Kotlin + Jetpack Compose + StrongBox):
+              </span>
+              <button
+                type="button"
+                onClick={() => handleCopy(androidKotlinSnippet, 'android_snippet')}
+                className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-mono"
+              >
+                {copiedSnippet === 'android_snippet' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedSnippet === 'android_snippet' ? 'Скопировано!' : 'Копировать Kotlin'}
+              </button>
+            </div>
+
+            <pre className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-200 overflow-x-auto leading-relaxed">
+              {androidKotlinSnippet}
             </pre>
           </div>
 

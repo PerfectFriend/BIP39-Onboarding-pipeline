@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, Lock, Delete, Shuffle, CheckCircle2 } from 'lucide-react';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface StepPinSetupProps {
   onPinConfirmed: (pin: string) => void;
@@ -34,6 +35,7 @@ export const StepPinSetup: React.FC<StepPinSetupProps> = ({
   const targetLength = 6; // Standard 6-digit PIN
 
   const handleKeyPress = (digit: string) => {
+    triggerHaptic('light');
     setError(null);
     if (currentInput.length >= targetLength) return;
 
@@ -43,8 +45,10 @@ export const StepPinSetup: React.FC<StepPinSetupProps> = ({
       if (nextVal.length === targetLength) {
         // Auto-check on final digit
         if (nextVal === pin) {
+          triggerHaptic('success');
           onPinConfirmed(pin);
         } else {
+          triggerHaptic('error');
           setError('Введенные PIN-коды не совпадают. Попробуйте снова.');
           setConfirmPin('');
         }
@@ -55,6 +59,7 @@ export const StepPinSetup: React.FC<StepPinSetupProps> = ({
   };
 
   const handleDelete = () => {
+    triggerHaptic('medium');
     setError(null);
     if (isConfirming) {
       setConfirmPin(prev => prev.slice(0, -1));

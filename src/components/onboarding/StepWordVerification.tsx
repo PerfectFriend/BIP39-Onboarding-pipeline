@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { VerificationChallenge } from '../../types/onboarding';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface StepWordVerificationProps {
   challenges: VerificationChallenge[];
@@ -29,6 +30,7 @@ export const StepWordVerification: React.FC<StepWordVerificationProps> = ({
       setSelectedWords(updated);
 
       if (updated.length === challenges.length) {
+        triggerHaptic('success');
         // All 3 passed! Trigger celebratory confetti
         confetti({
           particleCount: 70,
@@ -36,10 +38,12 @@ export const StepWordVerification: React.FC<StepWordVerificationProps> = ({
           origin: { y: 0.6 }
         });
       } else {
+        triggerHaptic('medium');
         // Move to next challenge
         setCurrentStep(prev => prev + 1);
       }
     } else {
+      triggerHaptic('error');
       // Wrong word chosen
       setErrorWord(word);
     }

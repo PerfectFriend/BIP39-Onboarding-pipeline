@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldAlert, ArrowLeft, ArrowRight, Skull, CheckCircle2, Delete } from 'lucide-react';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface StepPanicPinSetupProps {
   primaryPin: string;
@@ -17,6 +18,7 @@ export const StepPanicPinSetup: React.FC<StepPanicPinSetupProps> = ({
   const targetLength = 6;
 
   const handleKeyPress = (digit: string) => {
+    triggerHaptic('light');
     setError(null);
     if (panicPin.length >= targetLength) return;
     const nextVal = panicPin + digit;
@@ -24,23 +26,28 @@ export const StepPanicPinSetup: React.FC<StepPanicPinSetupProps> = ({
   };
 
   const handleDelete = () => {
+    triggerHaptic('medium');
     setError(null);
     setPanicPin(prev => prev.slice(0, -1));
   };
 
   const handleConfirmPanicPin = () => {
     if (panicPin.length < 4) {
+      triggerHaptic('error');
       setError('Панический PIN должен содержать минимум 4 цифры.');
       return;
     }
     if (panicPin === primaryPin) {
+      triggerHaptic('warning');
       setError('Панический PIN-код НЕ должен совпадать с основным PIN-кодом!');
       return;
     }
+    triggerHaptic('success');
     onFinishWithPanicPin(panicPin);
   };
 
   const handleSkip = () => {
+    triggerHaptic('light');
     onFinishWithPanicPin(undefined);
   };
 
