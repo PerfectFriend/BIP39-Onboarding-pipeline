@@ -8,11 +8,12 @@ import { BIP39Onboarding } from './components/onboarding/BIP39Onboarding';
 import { WalletDashboard } from './components/wallet/WalletDashboard';
 import { SdkIntegrationDrawer } from './components/sdk/SdkIntegrationDrawer';
 import { AiAgentPromptsModal } from './components/sdk/AiAgentPromptsModal';
+import { UserGuideAndAuditModal } from './components/docs/UserGuideAndAuditModal';
 import { AndroidDeviceFrame } from './components/android/AndroidDeviceFrame';
 import { WalletCredentials } from './types/onboarding';
 import { hasSavedVault, wipeAllVaultData, unlockVault } from './services/cryptoStorage';
 import { triggerHaptic } from './utils/haptics';
-import { Shield, Sparkles, Terminal, Skull, AlertOctagon, CheckCircle2, Smartphone, Monitor } from 'lucide-react';
+import { Shield, Sparkles, Terminal, Skull, AlertOctagon, CheckCircle2, Smartphone, Monitor, BookOpen } from 'lucide-react';
 
 export default function App() {
   const [wallet, setWallet] = useState<WalletCredentials | null>(null);
@@ -23,6 +24,7 @@ export default function App() {
   // Modals & Drawers
   const [isSdkDrawerOpen, setIsSdkDrawerOpen] = useState(false);
   const [isAiPromptsModalOpen, setIsAiPromptsModalOpen] = useState(false);
+  const [isUserGuideOpen, setIsUserGuideOpen] = useState(false);
   const [emergencyWipeActive, setEmergencyWipeActive] = useState(false);
 
   // Check on mount if duress occurred in previous session
@@ -161,24 +163,36 @@ export default function App() {
           </button>
         </div>
 
-        {/* Zone 3: 1 Primary action */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        {/* Zone 3: Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('light');
+              setIsUserGuideOpen(true);
+            }}
+            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-emerald-500/20 hover:from-amber-500/30 hover:to-emerald-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(245,158,11,0.15)] cursor-pointer"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Аудит &</span> Руководство
+          </button>
+
           <button
             type="button"
             onClick={() => setIsAiPromptsModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-500/20 to-sky-500/20 hover:from-purple-500/30 hover:to-sky-500/30 text-purple-200 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-500/20 to-sky-500/20 hover:from-purple-500/30 hover:to-sky-500/30 text-purple-200 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer hidden md:flex"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Kotlin & AI</span> Промпты
+            <span>AI Промпты</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsSdkDrawerOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer hidden md:flex"
+            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer hidden lg:flex"
           >
             <Terminal className="w-3.5 h-3.5 text-sky-400" />
-            <span>Android SDK</span>
+            <span>SDK</span>
           </button>
         </div>
       </header>
@@ -234,6 +248,13 @@ export default function App() {
       {isAiPromptsModalOpen && (
         <AiAgentPromptsModal
           onClose={() => setIsAiPromptsModalOpen(false)}
+        />
+      )}
+
+      {/* User Guide & Security Audit Modal */}
+      {isUserGuideOpen && (
+        <UserGuideAndAuditModal
+          onClose={() => setIsUserGuideOpen(false)}
         />
       )}
     </div>
