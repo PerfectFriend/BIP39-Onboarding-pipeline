@@ -5,6 +5,9 @@ import { exportPaperPassportPdf } from '../../services/pdfExport';
 import { generateQrDataUrl } from '../../services/qrGenerator';
 import { BiometricAuthOverlay } from '../android/BiometricAuthOverlay';
 import { triggerHaptic } from '../../utils/haptics';
+import { deriveHonestChainKeys, signEthereumMessage } from '../../services/keyDerivation';
+import { fetchLiveEthBalance, fetchLiveSolanaBalance, fetchLiveBtcBalance } from '../../services/rpcService';
+import { hex } from '@scure/base';
 import {
   Wallet,
   ArrowUpRight,
@@ -76,14 +79,67 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({
     setShowSeedModal(true);
   };
 
+  // Live RPC balances & Signature Modal state
+  const [isLiveRpcMode, setIsLiveRpcMode] = useState(false);
+  const [liveBalances, setLiveBalances] = useState<{ eth: string; btc: string; sol: string }>({
+    eth: '0.0000',
+    btc: '0.000000',
+    sol: '0.0000'
+  });
+  const [isLoadingLiveRpc, setIsLoadingLiveRpc] = useState(false);
+  const [showSignModal, setShowSignModal] = useState(false);
+  const [messageToSign, setMessageToSign] = useState('BIP-39 Vault Enclave Authentication Proof');
+  const [signatureOutput, setSignatureOutput] = useState<{
+    signature: string;
+    r: string;
+    s: string;
+    v: number;
+    address: string;
+  } | null>(null);
+
+  const handleFetchLiveBalances = async () => {
+    triggerHaptic('light');
+    setIsLoadingLiveRpc(true);
+    try {
+      const [ethBal, solBal, btcBal] = await Promise.all([
+        fetchLiveEthBalance(credentials.accounts.eth, 'sepolia'),
+        fetchLiveSolanaBalance(credentials.accounts.sol, 'devnet'),
+        fetchLiveBtcBalance(credentials.accounts.btc),
+      ]);
+      setLiveBalances({ eth: ethBal, sol: solBal, btc: btcBal });
+      setIsLiveRpcMode(true);
+      triggerHaptic('success');
+    } catch {
+      // Fallback
+    } finally {
+      setIsLoadingLiveRpc(false);
+    }
+  };
+
+  const handleGenerateRealSignature = () => {
+    try {
+      triggerHaptic('medium');
+      const seedBytes = hex.decode(credentials.seedHex);
+      const honest = deriveHonestChainKeys(seedBytes);
+      const sig = signEthereumMessage(messageToSign, honest.eth.privateKeyHex);
+      setSignatureOutput({
+        ...sig,
+        address: honest.eth.address
+      });
+      triggerHaptic('success');
+    } catch (err: any) {
+      alert('Ошибка при подписании: ' + err?.message);
+    }
+  };
+
   // Assets mockup with real addresses
   const assets = [
     {
       symbol: 'ETH',
       name: 'Ethereum',
-      balance: '4.8520',
+      balance: isLiveRpcMode ? liveBalances.eth : '4.8520',
       price: '$3,420.50',
-      fiatValue: '$16,596.26',
+      fiatValue: isLiveRpcMode ? `$${(parseFloat(liveBalances.eth) * 3420.5).toFixed(2)}` : '$16,596.26',
       change: '+3.42%',
       address: credentials.accounts.eth,
       iconColor: 'bg-sky-500/20 text-sky-400 border-sky-500/30'
@@ -91,9 +147,9 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({
     {
       symbol: 'BTC',
       name: 'Bitcoin',
-      balance: '0.1245',
+      balance: isLiveRpcMode ? liveBalances.btc : '0.1245',
       price: '$67,400.00',
-      fiatValue: '$8,391.30',
+      fiatValue: isLiveRpcMode ? `$${(parseFloat(liveBalances.btc) * 67400).toFixed(2)}` : '$8,391.30',
       change: '+1.85%',
       address: credentials.accounts.btc,
       iconColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30'
@@ -101,16 +157,22 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({
     {
       symbol: 'SOL',
       name: 'Solana',
-      balance: '28.40',
+      balance: isLiveRpcMode ? liveBalances.sol : '28.40',
       price: '$148.20',
-      fiatValue: '$4,208.88',
+      fiatValue: isLiveRpcMode ? `$${(parseFloat(liveBalances.sol) * 148.2).toFixed(2)}` : '$4,208.88',
       change: '+7.12%',
       address: credentials.accounts.sol,
       iconColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30'
     }
   ];
 
-  const totalFiat = '$29,196.44';
+  const totalFiat = isLiveRpcMode
+    ? `$${(
+        parseFloat(liveBalances.eth) * 3420.5 +
+        parseFloat(liveBalances.btc) * 67400 +
+        parseFloat(liveBalances.sol) * 148.2
+      ).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : '$29,196.44';
   const activeAssetData = assets.find(a => a.symbol === selectedAsset)!;
 
   const handleCopy = (text: string, id: string) => {
@@ -258,7 +320,23 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({
                 </button>
               </div>
 
-              {/* Active Asset Selector Tabs */}
+              {/* Active Asset Selector Tabs & Live RPC Sync */}
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${isLiveRpcMode ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                  {isLiveRpcMode ? 'Честный баланс (Sepolia/Devnet)' : 'Демо-режим'}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleFetchLiveBalances}
+                  disabled={isLoadingLiveRpc}
+                  className="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-400/30 text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <RefreshCw className={`w-3 h-3 text-sky-400 ${isLoadingLiveRpc ? 'animate-spin' : ''}`} />
+                  <span>{isLoadingLiveRpc ? 'Запрос RPC...' : isLiveRpcMode ? 'Обновить балансы RPC' : 'Запросить баланс из сети'}</span>
+                </button>
+              </div>
+
               <div className="flex items-center gap-2 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
                 {assets.map((asset) => (
                   <button
@@ -417,6 +495,20 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({
             >
               <Eye className="w-4 h-4 text-sky-400" />
               Просмотреть seed-фразу по PIN
+            </button>
+
+            {/* Honest Secp256k1 ECDSA Message Signing Button */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setShowSignModal(true);
+                setSignatureOutput(null);
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span>Подписать сообщение (Secp256k1 EIP-191)</span>
             </button>
           </div>
 
@@ -724,6 +816,93 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({
           setShowSeedModal(true);
         }}
       />
+
+      {/* Honest Secp256k1 ECDSA Signature Modal */}
+      {showSignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="cyber-card rounded-3xl p-6 sm:p-7 max-w-lg w-full relative gaudi-mosaic-border space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Криптографическая подпись (EIP-191)</h3>
+                  <span className="text-[11px] text-slate-400 font-mono">Secp256k1 ECDSA Private Key</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSignModal(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">
+                Текст сообщения для подписания:
+              </label>
+              <textarea
+                value={messageToSign}
+                onChange={(e) => setMessageToSign(e.target.value)}
+                rows={2}
+                className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 font-mono focus:border-purple-400 outline-none"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGenerateRealSignature}
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-sky-500 hover:from-purple-400 hover:to-sky-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md"
+            >
+              Сгенерировать честную подпись ECDSA
+            </button>
+
+            {signatureOutput && (
+              <div className="bg-slate-950 p-3.5 rounded-xl border border-purple-500/30 space-y-2 text-left font-mono text-[11px]">
+                <div>
+                  <span className="text-slate-500 block">Адрес подписанта (EIP-55):</span>
+                  <span className="text-emerald-400 break-all">{signatureOutput.address}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">ECDSA Signature (r + s + v):</span>
+                  <span className="text-purple-300 break-all">{signatureOutput.signature}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[10px] pt-1 border-t border-slate-900">
+                  <div>
+                    <span className="text-slate-500">v (recovery ID):</span>
+                    <span className="text-slate-300 ml-1">{signatureOutput.v}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Алгоритм:</span>
+                    <span className="text-slate-300 ml-1">Keccak-256 / secp256k1</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopy(signatureOutput.signature, 'sig_copy')}
+                  className="w-full mt-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-slate-800"
+                >
+                  {copiedKey === 'sig_copy' ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Скопировано в буфер!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Копировать подпись</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

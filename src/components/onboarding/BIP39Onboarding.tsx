@@ -22,6 +22,8 @@ export const BIP39Onboarding: React.FC<BIP39OnboardingProps> = ({
   const [generatedWords, setGeneratedWords] = useState<string[]>([]);
   const [fingerprint, setFingerprint] = useState<string>('00000000');
   const [challenges, setChallenges] = useState<VerificationChallenge[]>([]);
+  const [testedIndices, setTestedIndices] = useState<number[]>([]);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
   const [tempCredentials, setTempCredentials] = useState<WalletCredentials | null>(null);
   const [primaryPin, setPrimaryPin] = useState<string>('');
 
@@ -55,20 +57,41 @@ export const BIP39Onboarding: React.FC<BIP39OnboardingProps> = ({
       createdAt: Date.now()
     };
 
+    const initialChallenges = generateVerificationChallenges(words);
     setGeneratedWords(words);
     setFingerprint(addresses.fingerprint);
     setTempCredentials(creds);
-    setChallenges(generateVerificationChallenges(words));
+    setChallenges(initialChallenges);
+    setTestedIndices(initialChallenges.map(c => c.wordIndex));
+    setVerificationError(null);
     setCurrentStep('display_mnemonic');
   };
 
   // 2. Mnemonic confirmed -> go to verification
   const handleProceedToVerification = () => {
+    // If returning after an error, challenges were already regenerated with different words
     setCurrentStep('verify_words');
+  };
+
+  // 2b. Word verification failed -> return back with error and regenerate different challenge words
+  const handleVerificationFailed = (failedWordIndex: number, attemptedWord: string) => {
+    const displayNum = failedWordIndex + 1;
+    setVerificationError(
+      `Ошибка проверки: слово "${attemptedWord}" неверное для позиции #${displayNum}.`
+    );
+
+    // Pick DIFFERENT word positions excluding the previous tested indices
+    const previousIndices = challenges.map(c => c.wordIndex);
+    const newChallenges = generateVerificationChallenges(generatedWords, previousIndices);
+    setChallenges(newChallenges);
+    setTestedIndices(newChallenges.map(c => c.wordIndex));
+
+    setCurrentStep('display_mnemonic');
   };
 
   // 3. Verification passed -> set up primary PIN
   const handleVerificationSuccess = () => {
+    setVerificationError(null);
     setCurrentStep('setup_pin');
   };
 
@@ -136,9 +159,10 @@ export const BIP39Onboarding: React.FC<BIP39OnboardingProps> = ({
   };
 
   return (
-    <div className="w-full relative">
-      {/* Step Router */}
-      {currentStep === 'welcome' && (
+    <div className="w-full h-full max-h-full flex items-center justify-center p-2 overflow-hidden relative">
+      <div className="w-full max-w-2xl max-h-full overflow-y-auto px-2 py-1 scrollbar-thin">
+        {/* Step Router */}
+        {currentStep === 'welcome' && (
         <StepWelcome
           onCreateNew={() => setCurrentStep('disclaimer')}
           onRestore={() => setCurrentStep('restore')}
@@ -160,6 +184,7 @@ export const BIP39Onboarding: React.FC<BIP39OnboardingProps> = ({
         <StepMnemonicDisplay
           words={generatedWords}
           fingerprint={fingerprint}
+          errorMessage={verificationError}
           onProceedToVerification={handleProceedToVerification}
           onBack={() => setCurrentStep('disclaimer')}
         />
@@ -170,6 +195,7 @@ export const BIP39Onboarding: React.FC<BIP39OnboardingProps> = ({
           challenges={challenges}
           onSuccess={handleVerificationSuccess}
           onBackToMnemonic={() => setCurrentStep('display_mnemonic')}
+          onFailure={handleVerificationFailed}
         />
       )}
 
@@ -194,6 +220,7 @@ export const BIP39Onboarding: React.FC<BIP39OnboardingProps> = ({
           onBack={() => setCurrentStep('welcome')}
         />
       )}
+      </div>
 
       {/* Unlock Existing Vault Modal */}
       {showUnlockModal && (

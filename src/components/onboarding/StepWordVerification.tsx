@@ -8,21 +8,25 @@ interface StepWordVerificationProps {
   challenges: VerificationChallenge[];
   onSuccess: () => void;
   onBackToMnemonic: () => void;
+  onFailure: (failedWordIndex: number, attemptedWord: string) => void;
 }
 
 export const StepWordVerification: React.FC<StepWordVerificationProps> = ({
   challenges,
   onSuccess,
-  onBackToMnemonic
+  onBackToMnemonic,
+  onFailure
 }) => {
   const [currentStep, setCurrentStep] = useState(0); // 0, 1, 2
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
   const [errorWord, setErrorWord] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const activeChallenge = challenges[currentStep];
   const isComplete = selectedWords.length === challenges.length;
 
   const handleSelectWord = (word: string) => {
+    if (isRedirecting) return;
     setErrorWord(null);
 
     if (word === activeChallenge.correctWord) {
@@ -44,8 +48,12 @@ export const StepWordVerification: React.FC<StepWordVerificationProps> = ({
       }
     } else {
       triggerHaptic('error');
-      // Wrong word chosen
+      // Wrong word chosen -> show visual shake and automatically return to previous step
       setErrorWord(word);
+      setIsRedirecting(true);
+      setTimeout(() => {
+        onFailure(activeChallenge.wordIndex, word);
+      }, 850);
     }
   };
 
@@ -148,18 +156,13 @@ export const StepWordVerification: React.FC<StepWordVerificationProps> = ({
             </div>
 
             {errorWord && (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs animate-shake">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Слово &quot;{errorWord}&quot; неверное. Сверьтесь со своей записью.</span>
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 animate-pulse" />
+                  <span>
+                    Слово &quot;{errorWord}&quot; неверное для позиции #{activeChallenge.displayNumber}! Возвращаем к фразе для перепроверки...
+                  </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={onBackToMnemonic}
-                  className="underline hover:text-white shrink-0 ml-2"
-                >
-                  Посмотреть фразу
-                </button>
               </div>
             )}
           </div>

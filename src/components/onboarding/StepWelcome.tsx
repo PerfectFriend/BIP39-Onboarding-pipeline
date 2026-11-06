@@ -15,22 +15,22 @@ export const StepWelcome: React.FC<StepWelcomeProps> = ({
   onUnlockExisting
 }) => {
   return (
-    <div className="flex flex-col items-center text-center max-w-xl mx-auto py-4">
+    <div className="flex flex-col items-center text-center max-w-lg mx-auto py-1">
       {/* Visual Gaudi Mosaic Icon Orb */}
-      <div className="relative mb-6">
-        <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-amber-500/20 via-sky-500/20 to-purple-600/20 border border-sky-400/30 flex items-center justify-center p-1 shadow-[0_0_35px_rgba(56,189,248,0.2)]">
-          <div className="w-full h-full rounded-2xl bg-slate-900/80 flex items-center justify-center relative overflow-hidden">
+      <div className="relative mb-2.5">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-sky-500/20 to-purple-600/20 border border-sky-400/30 flex items-center justify-center p-0.5 shadow-[0_0_25px_rgba(56,189,248,0.2)]">
+          <div className="w-full h-full rounded-[14px] bg-slate-900/80 flex items-center justify-center relative overflow-hidden">
             {/* Van Gogh spiral aesthetic lines */}
             <div className="absolute inset-0 opacity-30 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-400 via-sky-500 to-transparent animate-pulse" />
-            <ShieldCheck className="w-10 h-10 text-sky-400 relative z-10" />
+            <ShieldCheck className="w-7 h-7 sm:w-8 sm:h-8 text-sky-400 relative z-10" />
           </div>
         </div>
-        <div className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-400/20 border border-amber-400/60 flex items-center justify-center">
-          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-400/20 border border-amber-400/60 flex items-center justify-center">
+          <Sparkles className="w-3 h-3 text-amber-300" />
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-xs font-mono text-sky-400 mb-2">
+      <div className="flex items-center gap-2 text-[11px] font-mono text-sky-400 mb-1">
         <span>BIP-39 PROTOCOL</span>
         <span aria-hidden="true">·</span>
         <span>AES-GCM 256-BIT</span>
@@ -38,16 +38,16 @@ export const StepWelcome: React.FC<StepWelcomeProps> = ({
         <span>ZERO-KNOWLEDGE</span>
       </div>
 
-      <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-3">
+      <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-1.5">
         Мастер-Ключ Хранилища
       </h1>
 
-      <p className="text-sm sm:text-base text-slate-300 max-w-md mb-8 leading-relaxed">
+      <p className="text-xs sm:text-sm text-slate-300 max-w-md mb-4 leading-normal">
         Полный суверенитет над вашими криптографическими активами. Генерация и защита мнемонической фразы с физическим паспортом и паническим кодом.
       </p>
 
       {/* Main Choice Action Buttons */}
-      <div className="w-full space-y-3.5 max-w-md">
+      <div className="w-full space-y-2.5 max-w-md">
         <button
           onClick={onCreateNew}
           className="w-full group relative overflow-hidden rounded-2xl p-px font-medium transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]"

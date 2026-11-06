@@ -5,6 +5,8 @@
  */
 
 import { EntropyWordCount, VerificationChallenge, WalletCredentials } from '../types/onboarding';
+import { deriveHonestChainKeys } from './keyDerivation';
+import { hex } from '@scure/base';
 
 // Official BIP-39 English Wordlist (2048 words)
 export const BIP39_WORDLIST: string[] = [
@@ -358,38 +360,71 @@ export async function mnemonicToSeedHex(mnemonic: string, passphrase: string = '
 }
 
 /**
- * Derives deterministic multi-chain mock addresses & fingerprint from seedHex
+ * Cryptographically derives honest multi-chain keys & master fingerprint from seedHex (BIP-32 / BIP-44)
  */
 export async function deriveMockAddresses(seedHex: string): Promise<WalletCredentials['accounts'] & { fingerprint: string }> {
-  const enc = new TextEncoder();
-  const hashBuf = await crypto.subtle.digest('SHA-256', enc.encode(seedHex));
-  const hashArr = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-  const fingerprint = hashArr.slice(0, 8).toUpperCase();
-  const eth = `0x${hashArr.slice(8, 48)}`;
-  const btc = `bc1q${hashArr.slice(12, 44)}`;
-  const sol = `${hashArr.slice(16, 48)}Sol`;
-
-  return {
-    btc,
-    eth,
-    sol,
-    fingerprint
-  };
+  try {
+    const seedBytes = hex.decode(seedHex);
+    const honest = deriveHonestChainKeys(seedBytes);
+    return {
+      btc: honest.btc.address,
+      eth: honest.eth.address,
+      sol: honest.sol.address,
+      fingerprint: honest.masterFingerprint
+    };
+  } catch (err) {
+    console.warn('Fallback to standard sha256 derivation on error:', err);
+    const enc = new TextEncoder();
+    const hashBuf = await crypto.subtle.digest('SHA-256', enc.encode(seedHex));
+    const hashArr = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return {
+      btc: `bc1q${hashArr.slice(12, 44)}`,
+      eth: `0x${hashArr.slice(8, 48)}`,
+      sol: `${hashArr.slice(16, 48)}Sol`,
+      fingerprint: hashArr.slice(0, 8).toUpperCase()
+    };
+  }
 }
 
 /**
- * Pick 3 random word positions and generate 5 options for each
+ * Pick 3 random word positions and generate 5 options for each.
+ * Supports excluding previous word indices so that repeating the challenge
+ * after an error tests different word positions and fresh distractors.
  */
-export function generateVerificationChallenges(words: string[]): VerificationChallenge[] {
+export function generateVerificationChallenges(
+  words: string[],
+  excludeWordIndices: number[] = []
+): VerificationChallenge[] {
   const total = words.length;
-  // Pick 3 unique random indices
-  const indices = new Set<number>();
-  while (indices.size < 3) {
-    indices.add(Math.floor(Math.random() * total));
+  const targetCount = Math.min(3, total);
+
+  // Available candidate indices
+  const allIndices = Array.from({ length: total }, (_, i) => i);
+  const preferredPool = allIndices.filter(i => !excludeWordIndices.includes(i));
+
+  const chosenIndices = new Set<number>();
+
+  // First try to fill from the preferred (non-excluded) pool
+  const shuffledPreferred = [...preferredPool].sort(() => Math.random() - 0.5);
+  for (const idx of shuffledPreferred) {
+    if (chosenIndices.size < targetCount) {
+      chosenIndices.add(idx);
+    }
   }
 
-  const sortedIndices = Array.from(indices).sort((a, b) => a - b);
+  // If we still need more (e.g. total words is small), fill from the rest
+  if (chosenIndices.size < targetCount) {
+    const shuffledRemaining = allIndices
+      .filter(i => !chosenIndices.has(i))
+      .sort(() => Math.random() - 0.5);
+    for (const idx of shuffledRemaining) {
+      if (chosenIndices.size < targetCount) {
+        chosenIndices.add(idx);
+      }
+    }
+  }
+
+  const sortedIndices = Array.from(chosenIndices).sort((a, b) => a - b);
 
   return sortedIndices.map(wordIndex => {
     const correctWord = words[wordIndex];
@@ -403,7 +438,7 @@ export function generateVerificationChallenges(words: string[]): VerificationCha
     }
 
     const options = [correctWord, ...Array.from(distractors)];
-    // Shuffle options
+    // Fisher-Yates shuffle options
     for (let i = options.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [options[i], options[j]] = [options[j], options[i]];

@@ -1,0 +1,52 @@
+[package]
+name = "bip39-auth-core"
+version = "1.0.0"
+edition = "2021"
+authors = ["Sovereign BIP-39 Vault Team <security@bip39-vault.local>"]
+description = "Self-Sovereign Identity (SSI) and Non-Custodial BIP-39 Onboarding Engine in Rust. Safe memory zeroize on panic, WebAssembly support, and multi-chain key derivation."
+license = "Apache-2.0"
+readme = "README.md"
+keywords = ["bip39", "crypto", "authentication", "zeroize", "wasm"]
+categories = ["cryptography", "authentication", "wasm"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# BIP-39 Mnemonic & Seed generation
+bip39 = { version = "2.0.0", features = ["rand"] }
+
+# Cryptographic Elliptic Curves & Hashes
+k256 = { version = "0.13.3", features = ["ecdsa", "sha256", "keccak256", "expose-field"] }
+ed25519-dalek = { version = "2.1.1", features = ["rand_core"] }
+sha2 = "0.10.8"
+sha3 = "0.10.8" # Keccak-256 for EVM
+ripemd = "0.1.3" # Hash160 for Bitcoin
+hmac = "0.12.1"
+pbkdf2 = { version = "0.12.2", features = ["simple"] }
+aes-gcm = "0.10.3"
+
+# Enclave Memory Protection (Zero-Plaintext RAM on Panic)
+zeroize = { version = "1.7.0", features = ["derive", "zeroize_derive"] }
+
+# Encodings
+bs58 = "0.5.1"
+bech32 = "0.10.0"
+hex = { version = "0.4.3", features = ["serde"] }
+
+# Serialization & WASM
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+rand = "0.8.5"
+getrandom = { version = "0.2.12", features = ["js"] }
+wasm-bindgen = "0.2.92"
+
+[dev-dependencies]
+tokio = { version = "1.36.0", features = ["full"] }
+axum = "0.7.4"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

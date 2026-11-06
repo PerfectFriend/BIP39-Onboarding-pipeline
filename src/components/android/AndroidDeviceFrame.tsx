@@ -28,16 +28,16 @@ export const AndroidDeviceFrame: React.FC<AndroidDeviceFrameProps> = ({
   }, []);
 
   return (
-    <div className="relative mx-auto my-2 w-full max-w-[420px]">
+    <div className="relative mx-auto w-full max-w-[400px] h-full max-h-full flex items-center justify-center py-1">
       {/* Device Body Chassis (Google Pixel / Galaxy style) */}
-      <div className="relative bg-[#0d1117] rounded-[48px] p-3 shadow-[0_0_60px_rgba(0,0,0,0.8),0_0_20px_rgba(56,189,248,0.2)] border-4 border-slate-800">
+      <div className="relative w-full bg-[#0d1117] rounded-[42px] p-2.5 shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_20px_rgba(56,189,248,0.2)] border-3 border-slate-800">
         {/* Hardware side buttons simulation */}
-        <div className="absolute -left-[7px] top-28 w-1 h-12 bg-slate-700 rounded-l-sm" />
-        <div className="absolute -right-[7px] top-24 w-1 h-10 bg-slate-700 rounded-r-sm" />
-        <div className="absolute -right-[7px] top-38 w-1 h-16 bg-slate-700 rounded-r-sm" />
+        <div className="absolute -left-[6px] top-24 w-1 h-10 bg-slate-700 rounded-l-sm" />
+        <div className="absolute -right-[6px] top-20 w-1 h-8 bg-slate-700 rounded-r-sm" />
+        <div className="absolute -right-[6px] top-32 w-1 h-12 bg-slate-700 rounded-r-sm" />
 
         {/* Screen Display Glass */}
-        <div className="relative bg-[#080914] rounded-[38px] overflow-hidden flex flex-col h-[780px] border border-slate-800/80">
+        <div className="relative bg-[#080914] rounded-[34px] overflow-hidden flex flex-col h-[min(650px,calc(100vh-8.5rem))] border border-slate-800/80">
           {/* Android Status Bar */}
           <div className="h-9 px-6 pt-1 flex items-center justify-between text-[11px] font-mono text-slate-300 select-none bg-slate-950/80 backdrop-blur-md z-30 shrink-0 border-b border-slate-900/60">
             {/* Left: Clock */}

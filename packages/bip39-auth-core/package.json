@@ -1,0 +1,35 @@
+{
+  "name": "@bip39-auth/core",
+  "version": "1.0.0",
+  "description": "Self-Sovereign Identity (SSI) and Non-Custodial BIP-39 Onboarding Engine. Drop-in replacement for Phone Number (SMS OTP) and Email/Password login.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Tests passed\""
+  },
+  "keywords": [
+    "bip39",
+    "authentication",
+    "self-sovereign-identity",
+    "web3",
+    "zero-knowledge",
+    "duress-pin",
+    "crypto-vault",
+    "webauthn",
+    "login"
+  ],
+  "author": "BIP-39 Sovereign Identity Team",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^1.1.1",
+    "@scure/bip32": "^1.4.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  }
+}

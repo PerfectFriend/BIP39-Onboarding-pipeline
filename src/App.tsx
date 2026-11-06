@@ -5,35 +5,73 @@
 
 import React, { useState, useEffect } from 'react';
 import { BIP39Onboarding } from './components/onboarding/BIP39Onboarding';
-import { WalletDashboard } from './components/wallet/WalletDashboard';
-import { SdkIntegrationDrawer } from './components/sdk/SdkIntegrationDrawer';
-import { AiAgentPromptsModal } from './components/sdk/AiAgentPromptsModal';
-import { UserGuideAndAuditModal } from './components/docs/UserGuideAndAuditModal';
-import { AndroidDeviceFrame } from './components/android/AndroidDeviceFrame';
+import { WalletPortfolioView } from './components/wallet/WalletPortfolioView';
+import { SecurityDuressView } from './components/security/SecurityDuressView';
+import { AndroidPlatformView } from './components/android/AndroidPlatformView';
+import { DeveloperSdkView } from './components/sdk/DeveloperSdkView';
+import { DocumentationView } from './components/docs/DocumentationView';
+import { RustMigrationView } from './components/rust/RustMigrationView';
+import { ThemeStudioView } from './components/themes/ThemeStudioView';
+import { FuturisticWelcomeSplash } from './components/splash/FuturisticWelcomeSplash';
 import { WalletCredentials } from './types/onboarding';
-import { hasSavedVault, wipeAllVaultData, unlockVault } from './services/cryptoStorage';
+import { wipeAllVaultData, hasSavedVault } from './services/cryptoStorage';
+import { generateMnemonic, mnemonicToSeedHex, deriveMockAddresses } from './services/bip39';
 import { triggerHaptic } from './utils/haptics';
-import { Shield, Sparkles, Terminal, Skull, AlertOctagon, CheckCircle2, Smartphone, Monitor, BookOpen } from 'lucide-react';
+import { AppLanguage, I18N_DICTIONARY } from './services/i18n';
+import {
+  Shield,
+  Sparkles,
+  Wallet,
+  Lock,
+  Smartphone,
+  Code2,
+  BookOpen,
+  Cpu,
+  Palette,
+  Skull,
+  AlertOctagon,
+  LogOut,
+  CheckCircle2,
+  Globe
+} from 'lucide-react';
+
+export type AppTopic = 'splash' | 'themes' | 'onboarding' | 'wallet' | 'security' | 'android' | 'rust' | 'sdk' | 'docs';
 
 export default function App() {
+  const [activeTopic, setActiveTopic] = useState<AppTopic>('splash');
+  const [language, setLanguage] = useState<AppLanguage>('en'); // Default: English per user request
+  const [activeThemeId, setActiveThemeId] = useState<string>('cyber-vangogh');
   const [wallet, setWallet] = useState<WalletCredentials | null>(null);
-  const [primaryPin, setPrimaryPin] = useState<string>('');
-  const [panicPin, setPanicPin] = useState<string | undefined>(undefined);
-  const [viewMode, setViewMode] = useState<'android' | 'desktop'>('android');
-
-  // Modals & Drawers
-  const [isSdkDrawerOpen, setIsSdkDrawerOpen] = useState(false);
-  const [isAiPromptsModalOpen, setIsAiPromptsModalOpen] = useState(false);
-  const [isUserGuideOpen, setIsUserGuideOpen] = useState(false);
+  const [primaryPin, setPrimaryPin] = useState<string>('123456');
+  const [panicPin, setPanicPin] = useState<string | undefined>('999999');
   const [emergencyWipeActive, setEmergencyWipeActive] = useState(false);
 
-  // Check on mount if duress occurred in previous session
+  const t = I18N_DICTIONARY[language];
+
+  // Check if duress occurred in previous session
   useEffect(() => {
     if (localStorage.getItem('bip39_vault_duress_active') === 'true') {
       localStorage.removeItem('bip39_vault_duress_active');
       triggerEmergencyAlert();
     }
   }, []);
+
+  const triggerEmergencyAlert = () => {
+    triggerHaptic('error');
+    setEmergencyWipeActive(true);
+    setWallet(null);
+    setPrimaryPin('');
+    setPanicPin(undefined);
+    setActiveTopic('splash');
+    setTimeout(() => {
+      setEmergencyWipeActive(false);
+    }, 6000);
+  };
+
+  const handlePanicTriggered = async () => {
+    await wipeAllVaultData();
+    triggerEmergencyAlert();
+  };
 
   const handleOnboardingComplete = (
     credentials: WalletCredentials,
@@ -43,220 +81,254 @@ export default function App() {
     triggerHaptic('success');
     setWallet(credentials);
     setPrimaryPin(pin);
-    setPanicPin(duressPin);
+    setPanicPin(duressPin || '999999');
+    setActiveTopic('wallet');
+  };
+
+  const handleGenerateDemoWallet = async () => {
+    triggerHaptic('medium');
+    const { mnemonic, words } = await generateMnemonic(12);
+    const seedHex = await mnemonicToSeedHex(mnemonic);
+    const addresses = await deriveMockAddresses(seedHex);
+
+    const demoCreds: WalletCredentials = {
+      mnemonic,
+      mnemonicWords: words,
+      seedHex,
+      masterFingerprint: addresses.fingerprint,
+      accounts: {
+        btc: addresses.btc,
+        eth: addresses.eth,
+        sol: addresses.sol
+      },
+      createdAt: Date.now()
+    };
+
+    setWallet(demoCreds);
+    setPrimaryPin('123456');
+    setPanicPin('999999');
+    triggerHaptic('success');
   };
 
   const handleLogout = () => {
     triggerHaptic('light');
     setWallet(null);
-    setPrimaryPin('');
-    setPanicPin(undefined);
+    setActiveTopic('onboarding');
   };
 
-  const triggerEmergencyAlert = () => {
-    triggerHaptic('error');
-    setEmergencyWipeActive(true);
-    setWallet(null);
-    setPrimaryPin('');
-    setPanicPin(undefined);
-    setTimeout(() => {
-      setEmergencyWipeActive(false);
-    }, 5000);
-  };
-
-  const handlePanicTriggered = async () => {
-    await wipeAllVaultData();
-    triggerEmergencyAlert();
-  };
-
-  const handleRestartOnboarding = async () => {
-    triggerHaptic('medium');
-    await wipeAllVaultData();
-    setWallet(null);
-    setPrimaryPin('');
-    setPanicPin(undefined);
-    setIsSdkDrawerOpen(false);
-  };
-
-  // Android biometric simulation unlock
-  const handleAndroidBiometricAuth = async () => {
-    if (primaryPin) {
-      triggerHaptic('success');
-      return;
-    }
-  };
-
-  const activeContent = wallet ? (
-    <WalletDashboard
-      credentials={wallet}
-      primaryPin={primaryPin}
-      panicPin={panicPin}
-      onLogout={handleLogout}
-      onDuressTriggered={handlePanicTriggered}
-      onOpenSdkModal={() => setIsSdkDrawerOpen(true)}
-      onOpenAiPromptsModal={() => setIsAiPromptsModalOpen(true)}
-    />
-  ) : (
-    <BIP39Onboarding
-      config={{
-        defaultWordCount: 12,
-        allowPanicPin: true,
-        allowPdfExport: true,
-        appName: 'BIP-39 Vault Android'
-      }}
-      onComplete={handleOnboardingComplete}
-      onPanicTriggered={handlePanicTriggered}
-    />
-  );
+  const topics: { id: AppTopic; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'splash', label: t.topics.splash, icon: Sparkles },
+    { id: 'themes', label: t.topics.themes, icon: Palette },
+    { id: 'onboarding', label: t.topics.onboarding, icon: Shield },
+    { id: 'wallet', label: t.topics.wallet, icon: Wallet },
+    { id: 'security', label: t.topics.security, icon: Lock },
+    { id: 'android', label: t.topics.android, icon: Smartphone },
+    { id: 'rust', label: t.topics.rust, icon: Cpu },
+    { id: 'sdk', label: t.topics.sdk, icon: Code2 },
+    { id: 'docs', label: t.topics.docs, icon: BookOpen },
+  ];
 
   return (
-    <div className="min-h-screen bg-cyber-vangogh text-slate-100 flex flex-col selection:bg-sky-500/30 selection:text-white">
-      {/* Top Bar Contract: 3 zones */}
-      <header className="sticky top-0 z-40 w-full bg-slate-950/75 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-8 py-3 flex items-center justify-between gap-4">
-        {/* Zone 1: Single Brand wordmark */}
-        <div className="flex items-center gap-2.5">
+    <div className="h-screen max-h-screen w-screen overflow-hidden bg-[#080914] text-slate-100 flex flex-col select-none selection:bg-sky-500/30 selection:text-white">
+      {/* Top Header Navigation Bar with Fullscreen Topic Buttons */}
+      <header className="h-14 shrink-0 px-3 sm:px-6 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/80 flex items-center justify-between gap-2 sm:gap-3 z-40">
+        {/* Left: Brand mark */}
+        <div
+          onClick={() => {
+            triggerHaptic('light');
+            setActiveTopic('splash');
+          }}
+          className="flex items-center gap-2.5 cursor-pointer shrink-0"
+        >
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 via-sky-400 to-purple-500 p-px shadow-[0_0_15px_rgba(56,189,248,0.3)]">
             <div className="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center">
               <Shield className="w-4 h-4 text-sky-400" />
             </div>
           </div>
-          <span className="font-extrabold text-base tracking-tight text-white whitespace-nowrap shrink-0">
-            BIP-39 Vault
-          </span>
-          <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hidden sm:inline-block">
-            Android Edition
-          </span>
+          <div className="flex flex-col">
+            <span className="font-extrabold text-xs sm:text-sm tracking-tight text-white leading-tight">
+              BIP39-ABOARD-SDK
+            </span>
+            <span className="text-[9px] font-mono uppercase text-amber-400 leading-tight hidden sm:block">
+              Cyberpunk · Gaudí · Van Gogh
+            </span>
+          </div>
         </div>
 
-        {/* Zone 2: View Switcher (Android Mobile Phone vs Web Desktop) */}
-        <div className="flex items-center p-1 bg-slate-900/90 rounded-2xl border border-slate-800">
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('light');
-              setViewMode('android');
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              viewMode === 'android'
-                ? 'bg-sky-500/20 text-sky-300 border border-sky-400/40 shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Android Mode</span>
-          </button>
+        {/* Center: Fullscreen Topic Tab Buttons */}
+        <nav className="flex items-center gap-1 p-1 bg-slate-900/90 rounded-2xl border border-slate-800 overflow-x-auto max-w-full scrollbar-none">
+          {topics.map((topic) => {
+            const Icon = topic.icon;
+            const isActive = activeTopic === topic.id;
+            return (
+              <button
+                key={topic.id}
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  setActiveTopic(topic.id);
+                }}
+                className={`px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? 'bg-gradient-to-r from-sky-500/25 to-amber-500/25 text-white border border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-amber-300' : 'text-slate-400'}`} />
+                <span>{topic.label}</span>
+              </button>
+            );
+          })}
+        </nav>
 
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('light');
-              setViewMode('desktop');
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              viewMode === 'desktop'
-                ? 'bg-sky-500/20 text-sky-300 border border-sky-400/40 shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Monitor className="w-3.5 h-3.5" />
-            <span>Web Responsive</span>
-          </button>
-        </div>
+        {/* Right: Language Switcher & Quick Status */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center p-0.5 bg-slate-900 rounded-xl border border-slate-800 text-[10px] font-mono">
+            {(['en', 'ru', 'es'] as const).map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  setLanguage(l);
+                }}
+                className={`px-1.5 sm:px-2 py-0.5 rounded-lg transition-all cursor-pointer font-bold uppercase ${
+                  language === l
+                    ? 'bg-amber-400 text-slate-950 shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
 
-        {/* Zone 3: Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('light');
-              setIsUserGuideOpen(true);
-            }}
-            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-emerald-500/20 hover:from-amber-500/30 hover:to-emerald-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(245,158,11,0.15)] cursor-pointer"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Аудит &</span> Руководство
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsAiPromptsModalOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-500/20 to-sky-500/20 hover:from-purple-500/30 hover:to-sky-500/30 text-purple-200 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(168,85,247,0.15)] cursor-pointer hidden md:flex"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>AI Промпты</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsSdkDrawerOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer hidden lg:flex"
-          >
-            <Terminal className="w-3.5 h-3.5 text-sky-400" />
-            <span>SDK</span>
-          </button>
+          {wallet ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Заблокировать сессию"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-400" />
+              <span className="hidden md:inline">Заблокировать</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleGenerateDemoWallet}
+              title="Быстро загрузить тестовые ключи"
+              className="px-2.5 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-400/30 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden md:inline">Демо-ключи</span>
+            </button>
+          )}
         </div>
       </header>
 
       {/* Emergency Wipe Banner Alert if Panic Pin was triggered */}
       {emergencyWipeActive && (
-        <div className="w-full bg-rose-600 text-white px-4 py-3 flex items-center justify-center gap-3 animate-bounce shadow-lg z-50">
-          <Skull className="w-5 h-5 text-white" />
-          <span className="text-xs sm:text-sm font-bold uppercase tracking-wider">
+        <div className="w-full bg-rose-600 text-white px-4 py-2.5 flex items-center justify-center gap-3 animate-pulse shadow-2xl z-50 shrink-0">
+          <Skull className="w-5 h-5 text-white animate-bounce" />
+          <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-center">
             ANDROID DURESS EMERGENCY WIPE TRIGGERED: Все аппаратные ключи Android Keystore и сессии уничтожены.
           </span>
           <AlertOctagon className="w-5 h-5 text-white" />
         </div>
       )}
 
-      {/* Main Viewport */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-6 py-4 sm:py-6 flex flex-col justify-center">
-        {viewMode === 'android' ? (
-          <AndroidDeviceFrame
-            onOpenBiometricAuth={handleAndroidBiometricAuth}
-            isUnlocked={!!wallet}
-          >
-            {activeContent}
-          </AndroidDeviceFrame>
-        ) : (
-          activeContent
+      {/* Main Fullscreen Topic Canvas (Strict Zero-Scroll: 100% viewport fit) */}
+      <main className="flex-1 w-full h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] overflow-hidden relative">
+        {/* 1. Topic: Splash screen */}
+        {activeTopic === 'splash' && (
+          <FuturisticWelcomeSplash
+            language={language}
+            onComplete={() => {
+              triggerHaptic('success');
+              setActiveTopic(wallet ? 'wallet' : 'themes');
+            }}
+          />
         )}
+
+        {/* 2. Topic: 20-Theme Setup & Banner Studio */}
+        {activeTopic === 'themes' && (
+          <ThemeStudioView
+            currentLanguage={language}
+            onLanguageChange={setLanguage}
+            activeThemeId={activeThemeId}
+            onThemeSelect={setActiveThemeId}
+          />
+        )}
+
+        {/* 3. Topic: Onboarding flow */}
+        {activeTopic === 'onboarding' && (
+          <BIP39Onboarding
+            config={{
+              defaultWordCount: 12,
+              allowPanicPin: true,
+              allowPdfExport: true,
+              appName: 'BIP-39 Vault Android'
+            }}
+            onComplete={handleOnboardingComplete}
+            onPanicTriggered={handlePanicTriggered}
+          />
+        )}
+
+        {/* 3. Topic: Wallet Portfolio View */}
+        {activeTopic === 'wallet' && (
+          <WalletPortfolioView
+            credentials={wallet}
+            onNavigateToOnboarding={() => setActiveTopic('onboarding')}
+            onGenerateDemoWallet={handleGenerateDemoWallet}
+          />
+        )}
+
+        {/* 4. Topic: Security & Duress Enclave View */}
+        {activeTopic === 'security' && (
+          <SecurityDuressView
+            credentials={wallet}
+            primaryPin={primaryPin}
+            panicPin={panicPin}
+            onDuressTriggered={handlePanicTriggered}
+            onNavigateToOnboarding={() => setActiveTopic('onboarding')}
+            onGenerateDemoWallet={handleGenerateDemoWallet}
+          />
+        )}
+
+        {/* 5. Topic: Android Emulator & Biometrics View */}
+        {activeTopic === 'android' && (
+          <AndroidPlatformView wallet={wallet}>
+            {wallet ? (
+              <WalletPortfolioView
+                credentials={wallet}
+                onNavigateToOnboarding={() => setActiveTopic('onboarding')}
+                onGenerateDemoWallet={handleGenerateDemoWallet}
+              />
+            ) : (
+              <BIP39Onboarding
+                config={{
+                  defaultWordCount: 12,
+                  allowPanicPin: true,
+                  allowPdfExport: true,
+                  appName: 'BIP-39 Vault'
+                }}
+                onComplete={handleOnboardingComplete}
+                onPanicTriggered={handlePanicTriggered}
+              />
+            )}
+          </AndroidPlatformView>
+        )}
+
+        {/* 6. Topic: Rust & WASM High-Performance Enclave */}
+        {activeTopic === 'rust' && <RustMigrationView />}
+
+        {/* 7. Topic: Developer SDK & AI Studio Prompts */}
+        {activeTopic === 'sdk' && <DeveloperSdkView />}
+
+        {/* 8. Topic: Security Audit & User Documentation */}
+        {activeTopic === 'docs' && <DocumentationView />}
       </main>
-
-      {/* Footer */}
-      <footer className="w-full border-t border-slate-900 bg-slate-950/40 py-3.5 px-6 text-center text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Android 14/15 Architecture · FLAG_SECURE · Android Keystore StrongBox · BiometricPrompt</span>
-        </div>
-        <div>
-          <span>Стилистика: Киберпанк + Ван Гог + Гауди · Haptic Vibration Active</span>
-        </div>
-      </footer>
-
-      {/* SDK Drawer */}
-      {isSdkDrawerOpen && (
-        <SdkIntegrationDrawer
-          credentials={wallet || undefined}
-          primaryPin={primaryPin}
-          panicPin={panicPin}
-          onClose={() => setIsSdkDrawerOpen(false)}
-          onRestartOnboarding={handleRestartOnboarding}
-        />
-      )}
-
-      {/* AI Prompts Modal with Android Native Tab */}
-      {isAiPromptsModalOpen && (
-        <AiAgentPromptsModal
-          onClose={() => setIsAiPromptsModalOpen(false)}
-        />
-      )}
-
-      {/* User Guide & Security Audit Modal */}
-      {isUserGuideOpen && (
-        <UserGuideAndAuditModal
-          onClose={() => setIsUserGuideOpen(false)}
-        />
-      )}
     </div>
   );
 }

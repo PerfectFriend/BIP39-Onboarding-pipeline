@@ -9,13 +9,15 @@ interface StepMnemonicDisplayProps {
   fingerprint: string;
   onProceedToVerification: () => void;
   onBack: () => void;
+  errorMessage?: string | null;
 }
 
 export const StepMnemonicDisplay: React.FC<StepMnemonicDisplayProps> = ({
   words,
   fingerprint,
   onProceedToVerification,
-  onBack
+  onBack,
+  errorMessage
 }) => {
   const [copied, setCopied] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -118,6 +120,19 @@ export const StepMnemonicDisplay: React.FC<StepMnemonicDisplayProps> = ({
               </span>
             </div>
           </div>
+
+          {/* Verification Error Notice */}
+          {errorMessage && (
+            <div className="mb-5 p-3 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs flex items-start gap-2.5 animate-fadeIn">
+              <span className="text-base leading-none">⚠️</span>
+              <div className="space-y-0.5">
+                <div className="font-semibold text-rose-200">{errorMessage}</div>
+                <div className="text-[11px] text-rose-300/80 font-mono">
+                  Пожалуйста, внимательно перепроверьте каждое слово. При повторной проверке система выберет другие по порядку слова и новый набор вариантов.
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Numbered Words Grid */}
           <div
