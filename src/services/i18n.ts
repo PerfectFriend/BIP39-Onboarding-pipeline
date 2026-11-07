@@ -17,6 +17,7 @@ export interface Translations {
     onboarding: string;
     wallet: string;
     themes: string;
+    intel: string;
     security: string;
     android: string;
     rust: string;
@@ -58,6 +59,7 @@ export const I18N_DICTIONARY: Record<AppLanguage, Translations> = {
       onboarding: 'Onboarding',
       wallet: 'Vault',
       themes: '20 Themes 🎨',
+      intel: 'AML & Web3 🔍',
       security: 'Security',
       android: 'Android',
       rust: 'Rust 🦀',
@@ -97,6 +99,7 @@ export const I18N_DICTIONARY: Record<AppLanguage, Translations> = {
       onboarding: 'Онбординг',
       wallet: 'Хранилище',
       themes: '20 Тем 🎨',
+      intel: 'AML & Кошельки 🔍',
       security: 'Безопасность',
       android: 'Android',
       rust: 'Rust 🦀',
@@ -136,6 +139,7 @@ export const I18N_DICTIONARY: Record<AppLanguage, Translations> = {
       onboarding: 'Incorporación',
       wallet: 'Bóveda',
       themes: '20 Temas 🎨',
+      intel: 'AML & Billeteras 🔍',
       security: 'Seguridad',
       android: 'Android',
       rust: 'Rust 🦀',

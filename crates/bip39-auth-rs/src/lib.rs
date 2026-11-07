@@ -17,6 +17,7 @@ pub mod key_derivation;
 pub mod signer;
 pub mod verifier;
 pub mod cloud_storage;
+pub mod aml;
 pub mod ffi;
 
 // Re-exports
@@ -26,6 +27,7 @@ pub use key_derivation::{DerivedAccounts, derive_multichain_keys, to_checksum_ad
 pub use signer::{AuthChallenge, sign_auth_challenge, verify_eip191_signature};
 pub use verifier::{verify_bip39_login, VerifyLoginRequest, VerifyLoginResult};
 pub use cloud_storage::{derive_cloud_key, encrypt_for_cloud, decrypt_from_cloud, CloudSymmetricKey, CloudCiphertextPayload};
+pub use aml::{screen_address_aml, AmlScoreResult};
 
 use wasm_bindgen::prelude::*;
 

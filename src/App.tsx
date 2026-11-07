@@ -12,6 +12,7 @@ import { DeveloperSdkView } from './components/sdk/DeveloperSdkView';
 import { DocumentationView } from './components/docs/DocumentationView';
 import { RustMigrationView } from './components/rust/RustMigrationView';
 import { ThemeStudioView } from './components/themes/ThemeStudioView';
+import { AmlWalletIntelView } from './components/intel/AmlWalletIntelView';
 import { FuturisticWelcomeSplash } from './components/splash/FuturisticWelcomeSplash';
 import { WalletCredentials } from './types/onboarding';
 import { wipeAllVaultData, hasSavedVault } from './services/cryptoStorage';
@@ -28,6 +29,7 @@ import {
   BookOpen,
   Cpu,
   Palette,
+  ShieldAlert,
   Skull,
   AlertOctagon,
   LogOut,
@@ -35,7 +37,7 @@ import {
   Globe
 } from 'lucide-react';
 
-export type AppTopic = 'splash' | 'themes' | 'onboarding' | 'wallet' | 'security' | 'android' | 'rust' | 'sdk' | 'docs';
+export type AppTopic = 'splash' | 'themes' | 'onboarding' | 'wallet' | 'intel' | 'security' | 'android' | 'rust' | 'sdk' | 'docs';
 
 export default function App() {
   const [activeTopic, setActiveTopic] = useState<AppTopic>('splash');
@@ -121,6 +123,7 @@ export default function App() {
     { id: 'themes', label: t.topics.themes, icon: Palette },
     { id: 'onboarding', label: t.topics.onboarding, icon: Shield },
     { id: 'wallet', label: t.topics.wallet, icon: Wallet },
+    { id: 'intel', label: t.topics.intel, icon: ShieldAlert },
     { id: 'security', label: t.topics.security, icon: Lock },
     { id: 'android', label: t.topics.android, icon: Smartphone },
     { id: 'rust', label: t.topics.rust, icon: Cpu },
@@ -284,7 +287,15 @@ export default function App() {
           />
         )}
 
-        {/* 4. Topic: Security & Duress Enclave View */}
+        {/* 4. Topic: AML Cleanliness Radar & Web3 External Wallets */}
+        {activeTopic === 'intel' && (
+          <AmlWalletIntelView
+            currentLanguage={language}
+            masterVaultAddress={wallet?.accounts?.eth || '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'}
+          />
+        )}
+
+        {/* 5. Topic: Security & Duress Enclave View */}
         {activeTopic === 'security' && (
           <SecurityDuressView
             credentials={wallet}
