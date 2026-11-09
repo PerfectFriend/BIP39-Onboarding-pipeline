@@ -206,6 +206,42 @@ pub fn sign_ethereum_message(message: &str, private_key_bytes: &[u8]) -> Result<
     // 3. Авторизация без базы данных паролей
 }`
     },
+    'erc4337.rs': {
+      title: 'src/erc4337.rs',
+      path: 'crates/bip39-auth-rs/src/erc4337.rs',
+      desc: 'ERC-4337 v0.7 Account Abstraction: PackedUserOperation, CREATE2 адрес и Paymaster релей',
+      code: `use sha3::{Digest, Keccak256};
+
+pub fn compute_counterfactual_account(owner_address: &str, salt: Option<&str>) -> Result<SmartAccountInfo, String> {
+    // CREATE2: keccak256(0xff ++ factory ++ salt ++ keccak256(init_code))[12..32]
+}
+
+pub fn compute_user_operation_hash(op: &PackedUserOperation, entry_point: &str, chain_id: u64) -> Result<String, String> {
+    // Canonical EIP-4337 v0.7 Keccak256 digest
+}`
+    },
+    'stealth.rs': {
+      title: 'src/stealth.rs',
+      path: 'crates/bip39-auth-rs/src/stealth.rs',
+      desc: 'ERC-5564 Stealth Addresses: Secp256k1 Диффи-Хеллман, R = r * G, сканер и ZeroizeOnDrop',
+      code: `use k256::{ProjectivePoint, Scalar, SecretKey};
+use zeroize::{Zeroize, ZeroizeOnDrop};
+
+#[derive(Zeroize, ZeroizeOnDrop)]
+pub struct ZeroizeSecretScalar {
+    pub scalar_bytes: [u8; 32],
+}
+
+pub fn generate_stealth_address(spending_pubkey: &str, viewing_pubkey: &str) -> Result<StealthPayment, String> {
+    // 1. r = random_scalar(); R = r * G
+    // 2. S = r * K_view; s_h = keccak256(S.x || S.y)
+    // 3. P_stealth = K_spend + (s_h * G)
+}
+
+pub fn scan_and_recover_stealth_key(...) -> Result<StealthScanResult, String> {
+    // p_stealth = (k_spend + s_h) mod n с мгновенным ZeroizeOnDrop
+}`
+    },
     'server_axum.rs': {
       title: 'examples/server_axum.rs',
       path: 'crates/bip39-auth-rs/examples/server_axum.rs',

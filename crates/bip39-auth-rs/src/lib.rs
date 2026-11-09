@@ -9,6 +9,9 @@
 //! - AES-256-GCM + PBKDF2 enclave storage with `zeroize::Zeroize` on drop.
 //! - Multi-chain HD derivation: EVM (`m/44'/60'/0'/0/0`), Bitcoin (`m/84'/0'/0'/0/0`), Solana (`m/44'/501'/0'/0'`).
 //! - EIP-191 Secp256k1 signature authentication for passwordless/SMS-less login.
+//! - ERC-4337 Account Abstraction v0.7: counterfactual CREATE2 accounts, packed UserOp digests, gasless paymaster relay.
+//! - ERC-5564 Stealth Addresses: Secp256k1 Diffie-Hellman, ephemeral $R = r \cdot G$, stealth view-key scanner, $p_{stealth}$ scalar recovery with ZeroizeOnDrop.
+//! - Advanced AML & Threat Classifier: OFAC SDN registry, Tornado Cash, phishing drainers, risk scoring.
 //! - Full WebAssembly bindings via `wasm_bindgen` for browser & Node.js.
 
 pub mod mnemonic;
@@ -18,6 +21,8 @@ pub mod signer;
 pub mod verifier;
 pub mod cloud_storage;
 pub mod aml;
+pub mod erc4337;
+pub mod stealth;
 pub mod ffi;
 
 // Re-exports
@@ -27,7 +32,15 @@ pub use key_derivation::{DerivedAccounts, derive_multichain_keys, to_checksum_ad
 pub use signer::{AuthChallenge, sign_auth_challenge, verify_eip191_signature};
 pub use verifier::{verify_bip39_login, VerifyLoginRequest, VerifyLoginResult};
 pub use cloud_storage::{derive_cloud_key, encrypt_for_cloud, decrypt_from_cloud, CloudSymmetricKey, CloudCiphertextPayload};
-pub use aml::{screen_address_aml, AmlScoreResult};
+pub use aml::{screen_address_aml, AmlScoreResult, ThreatFlag, ThreatSeverity};
+pub use erc4337::{
+    compute_counterfactual_account, compute_user_operation_hash, build_gasless_user_op,
+    PackedUserOperation, GaslessRelayPayload, SmartAccountInfo, CANONICAL_ENTRY_POINT_V07, CANONICAL_PAYMASTER,
+};
+pub use stealth::{
+    generate_stealth_meta_address, generate_stealth_address, scan_and_recover_stealth_key,
+    StealthMetaAddress, StealthPayment, StealthScanResult, ZeroizeSecretScalar,
+};
 
 use wasm_bindgen::prelude::*;
 
@@ -109,5 +122,69 @@ impl RustBIP39Enclave {
 
         String::from_utf8(res.decrypted_bytes)
             .map_err(|e| JsValue::from_str(&format!("UTF-8 decode error: {}", e)))
+    }
+
+    // --- NEW WASM EXPORTS FOR ERC-4337, ERC-5564 & AML ---
+
+    /// Compute counterfactual ERC-4337 Smart Account address (CREATE2)
+    #[wasm_bindgen]
+    pub fn compute_smart_account(&self, owner_address: &str, salt_hex: Option<String>) -> Result<String, JsValue> {
+        let info = erc4337::compute_counterfactual_account(owner_address, salt_hex.as_deref())
+            .map_err(|e| JsValue::from_str(&e))?;
+        serde_json::to_string(&info)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Build sponsored gasless UserOperation relay payload
+    #[wasm_bindgen]
+    pub fn build_gasless_user_op(
+        &self,
+        smart_account: &str,
+        target_contract: &str,
+        call_value_wei: &str,
+        data_hex: &str,
+        chain_id: u64,
+    ) -> Result<String, JsValue> {
+        let payload = erc4337::build_gasless_user_op(smart_account, target_contract, call_value_wei, data_hex, chain_id)
+            .map_err(|e| JsValue::from_str(&e))?;
+        serde_json::to_string(&payload)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Generate an ERC-5564 stealth payment address and ephemeral public key
+    #[wasm_bindgen]
+    pub fn generate_stealth_address(&self, spending_pubkey: &str, viewing_pubkey: &str) -> Result<String, JsValue> {
+        let payment = stealth::generate_stealth_address(spending_pubkey, viewing_pubkey)
+            .map_err(|e| JsValue::from_str(&e))?;
+        serde_json::to_string(&payment)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Scan incoming announcement and recover stealth private key if addressed to receiver
+    #[wasm_bindgen]
+    pub fn scan_and_recover_stealth_key(
+        &self,
+        ephemeral_pubkey: &str,
+        viewing_privkey: &str,
+        spending_privkey: &str,
+        expected_stealth_address: &str,
+    ) -> Result<String, JsValue> {
+        let result = stealth::scan_and_recover_stealth_key(
+            ephemeral_pubkey,
+            viewing_privkey,
+            spending_privkey,
+            expected_stealth_address,
+        )
+        .map_err(|e| JsValue::from_str(&e))?;
+        serde_json::to_string(&result)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// Screen an address for AML sanctions, mixers, and drainer signatures
+    #[wasm_bindgen]
+    pub fn screen_address_aml(&self, address: &str) -> Result<String, JsValue> {
+        let score = aml::screen_address_aml(address);
+        serde_json::to_string(&score)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
     }
 }

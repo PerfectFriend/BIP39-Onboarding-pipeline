@@ -41,6 +41,10 @@ crates/bip39-auth-rs/
     ├── key_derivation.rs      # Мультичейн деривация (EVM, Bitcoin SegWit, Solana)
     ├── signer.rs              # EIP-191 Secp256k1 генерация и верификация подписи
     ├── verifier.rs            # Серверный валидатор challenge-response сессий
+    ├── cloud_storage.rs       # Zero-knowledge HKDF + AES-GCM облачное шифрование
+    ├── erc4337.rs             # ERC-4337 Account Abstraction, CREATE2 и Paymaster релей
+    ├── stealth.rs             # ERC-5564 Stealth Addresses (Диффи-Хеллман, R = r*G, сканер)
+    ├── aml.rs                 # OFAC SDN, миксеры Tornado Cash, дренеры и скоринг 0-100
     └── ffi.rs                 # C-ABI интерфейс для Android NDK и iOS Swift
 ```
 
@@ -55,6 +59,9 @@ crates/bip39-auth-rs/
 | **Шифрование хранилища** | `src/services/cryptoStorage.ts` | `crates/bip39-auth-rs/src/storage.rs` (`encrypt_vault_payload`) |
 | **Панический PIN ($5 Wrench)** | `wipeAllVaultData()` | `storage::decrypt_vault_payload` (`is_duress: true` + `Zeroize`) |
 | **Деривация EVM / BTC / SOL** | `src/services/keyDerivation.ts` | `crates/bip39-auth-rs/src/key_derivation.rs` (`derive_multichain_keys`) |
+| **ERC-4337 Account Abstraction** | `src/services/accountAbstraction.ts` | `crates/bip39-auth-rs/src/erc4337.rs` (`compute_counterfactual_account`, `build_gasless_user_op`) |
+| **ERC-5564 Stealth Addresses** | `src/services/stealthAddresses.ts` | `crates/bip39-auth-rs/src/stealth.rs` (`generate_stealth_address`, `scan_and_recover_stealth_key`) |
+| **AML & Sanctions Radar** | `src/services/amlIntelligence.ts` | `crates/bip39-auth-rs/src/aml.rs` (`screen_address_aml`) |
 | **Подпись сообщений** | `signEthereumMessage()` | `crates/bip39-auth-rs/src/signer.rs` (`sign_ethereum_message`) |
 | **Серверный верификатор** | `src/lib/bip39-auth-core/server` | `crates/bip39-auth-rs/src/verifier.rs` (`verify_bip39_login`) |
 | **Web-интерфейс** | React 18 SPA | `#[wasm_bindgen]` в `lib.rs` + мост `rustBridge.ts` |
