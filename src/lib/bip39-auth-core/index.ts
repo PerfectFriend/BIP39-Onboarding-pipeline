@@ -14,6 +14,7 @@ export * from './keyDerivation';
 export * from './signer';
 export * from './cloudEncryption';
 export * from './aml';
+export * from './advancedCrypto';
 export * from './webAuthn';
 export * from './react/BIP39AuthProvider';
 export * from './react/useBIP39Auth';

@@ -19,6 +19,7 @@ import { wipeAllVaultData, hasSavedVault } from './services/cryptoStorage';
 import { generateMnemonic, mnemonicToSeedHex, deriveMockAddresses } from './services/bip39';
 import { triggerHaptic } from './utils/haptics';
 import { AppLanguage, I18N_DICTIONARY } from './services/i18n';
+import { SDK_THEMES } from './types/themes';
 import {
   Shield,
   Sparkles,
@@ -49,6 +50,7 @@ export default function App() {
   const [emergencyWipeActive, setEmergencyWipeActive] = useState(false);
 
   const t = I18N_DICTIONARY[language];
+  const currentTheme = SDK_THEMES.find(th => th.id === activeThemeId) || SDK_THEMES[0];
 
   // Check if duress occurred in previous session
   useEffect(() => {
@@ -132,9 +134,9 @@ export default function App() {
   ];
 
   return (
-    <div className="h-screen max-h-screen w-screen overflow-hidden bg-[#080914] text-slate-100 flex flex-col select-none selection:bg-sky-500/30 selection:text-white">
+    <div className={`h-screen max-h-screen w-screen overflow-hidden ${currentTheme.bgClass} text-slate-100 flex flex-col select-none transition-colors duration-500`}>
       {/* Top Header Navigation Bar with Fullscreen Topic Buttons */}
-      <header className="h-14 shrink-0 px-3 sm:px-6 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/80 flex items-center justify-between gap-2 sm:gap-3 z-40">
+      <header className={`h-14 shrink-0 px-3 sm:px-6 bg-slate-950/90 backdrop-blur-xl border-b ${currentTheme.borderClass} flex items-center justify-between gap-2 sm:gap-3 z-40`}>
         {/* Left: Brand mark */}
         <div
           onClick={() => {
@@ -143,17 +145,17 @@ export default function App() {
           }}
           className="flex items-center gap-2.5 cursor-pointer shrink-0"
         >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 via-sky-400 to-purple-500 p-px shadow-[0_0_15px_rgba(56,189,248,0.3)]">
+          <div className={`w-8 h-8 rounded-xl bg-gradient-to-tr ${currentTheme.previewGradient} p-px ${currentTheme.glowClass}`}>
             <div className="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center">
-              <Shield className="w-4 h-4 text-sky-400" />
+              <Shield className="w-4 h-4" style={{ color: currentTheme.primary }} />
             </div>
           </div>
           <div className="flex flex-col">
             <span className="font-extrabold text-xs sm:text-sm tracking-tight text-white leading-tight">
               BIP39-ABOARD-SDK
             </span>
-            <span className="text-[9px] font-mono uppercase text-amber-400 leading-tight hidden sm:block">
-              Cyberpunk · Gaudí · Van Gogh
+            <span className="text-[9px] font-mono uppercase leading-tight hidden sm:block truncate max-w-[150px]" style={{ color: currentTheme.primary }}>
+              {currentTheme.name}
             </span>
           </div>
         </div>
@@ -173,11 +175,11 @@ export default function App() {
                 }}
                 className={`px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
                   isActive
-                    ? 'bg-gradient-to-r from-sky-500/25 to-amber-500/25 text-white border border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                    ? `bg-gradient-to-r ${currentTheme.previewGradient} text-white border ${currentTheme.borderClass} ${currentTheme.glowClass}`
                     : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-amber-300' : 'text-slate-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                 <span>{topic.label}</span>
               </button>
             );
