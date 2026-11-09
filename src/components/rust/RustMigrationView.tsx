@@ -349,6 +349,22 @@ async fn main() {
             <Terminal className="w-3.5 h-3.5 text-purple-400" />
             <span>Инструкции сборки (WASM / NDK)</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('light');
+              setActiveTab('crossplat' as any);
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+              (activeTab as string) === 'crossplat'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Кроссплатформенный техпроцесс</span>
+          </button>
         </div>
       </div>
 
@@ -577,6 +593,100 @@ async fn main() {
                 <div className="text-slate-400 text-[11px]">
                   cargo run --example server_axum
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 5: Cross-Platform Rust Integration Guide */}
+        {((activeTab as string) === 'crossplat') && (
+          <div className="cyber-card rounded-2xl p-4 border border-slate-800 h-full max-h-full flex flex-col justify-between overflow-hidden">
+            <div className="pb-2 mb-2 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs font-bold text-white">
+                  Техпроцесс интеграции: Tauri, Android NDK, iOS Swift, Flutter
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-cyan-300">CROSS_PLATFORM_RUST_INTEGRATION.md</span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-3 font-mono text-xs text-slate-300 leading-relaxed pr-1 scrollbar-thin">
+              {/* Option 1: Tauri */}
+              <div className="p-3.5 rounded-xl bg-slate-950/90 border border-cyan-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-cyan-300 font-bold font-sans text-xs flex items-center gap-2">
+                    <span>1. Desktop & Mobile: Tauri v2 (Rust IPC Commands)</span>
+                  </span>
+                  <span className="text-[9px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200">Zero-Overhead IPC</span>
+                </div>
+                <div className="text-[11px] text-slate-400 font-sans">
+                  Прямой вызов крипто-анклава из UI без посредников:
+                </div>
+                <pre className="text-[10px] text-cyan-200/90 bg-slate-900/80 p-2.5 rounded-lg overflow-x-auto">
+{`// src-tauri/src/main.rs
+#[tauri::command]
+fn create_vault(words: u8) -> Result<String, String> {
+    bip39_auth_core::mnemonic::generate_mnemonic_phrase(match words { 24 => WordCount::Words24, _ => WordCount::Words12 })
+}
+
+// Client-side React / TS:
+const mnemonic = await invoke<string>('create_vault', { words: 12 });`}
+                </pre>
+              </div>
+
+              {/* Option 2: Android NDK */}
+              <div className="p-3.5 rounded-xl bg-slate-950/90 border border-emerald-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-emerald-300 font-bold font-sans text-xs flex items-center gap-2">
+                    <span>2. Android: Kotlin + JNI Native (.so)</span>
+                  </span>
+                  <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200">Android NDK</span>
+                </div>
+                <pre className="text-[10px] text-emerald-200/90 bg-slate-900/80 p-2.5 rounded-lg overflow-x-auto">
+{`// JNI C-ABI Binding (app/src/main/jniLibs/arm64-v8a/libbip39_auth_core.so)
+class Bip39AuthEngine {
+    init { System.loadLibrary("bip39_auth_core") }
+    external fun bip39_generate_mnemonic(wordCount: Int): String
+    external fun bip39_screen_address_aml_c(address: String): String
+}`}
+                </pre>
+              </div>
+
+              {/* Option 3: iOS Swift */}
+              <div className="p-3.5 rounded-xl bg-slate-950/90 border border-sky-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sky-300 font-bold font-sans text-xs flex items-center gap-2">
+                    <span>3. iOS: Swift + XCFramework C-ABI</span>
+                  </span>
+                  <span className="text-[9px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-200">Apple Silicon / iOS</span>
+                </div>
+                <pre className="text-[10px] text-sky-200/90 bg-slate-900/80 p-2.5 rounded-lg overflow-x-auto">
+{`// Swift Wrapper:
+public final class SovereignAuthCore {
+    public static func generateMnemonic(words: Int = 12) -> String {
+        guard let cStr = bip39_generate_mnemonic(Int32(words)) else { return "" }
+        defer { bip39_free_string(cStr) }
+        return String(cString: cStr)
+    }
+}`}
+                </pre>
+              </div>
+
+              {/* Option 4: Flutter */}
+              <div className="p-3.5 rounded-xl bg-slate-950/90 border border-purple-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-purple-300 font-bold font-sans text-xs flex items-center gap-2">
+                    <span>4. Flutter: Dart FFI (dart:ffi)</span>
+                  </span>
+                  <span className="text-[9px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-200">Flutter FFI</span>
+                </div>
+                <pre className="text-[10px] text-purple-200/90 bg-slate-900/80 p-2.5 rounded-lg overflow-x-auto">
+{`final DynamicLibrary nativeLib = DynamicLibrary.open('libbip39_auth_core.so');
+final generateMnemonic = nativeLib
+    .lookup<NativeFunction<Pointer<Utf8> Function(Int32)>>('bip39_generate_mnemonic')
+    .asFunction<Pointer<Utf8> Function(int)>();`}
+                </pre>
               </div>
             </div>
           </div>
